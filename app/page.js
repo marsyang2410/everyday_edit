@@ -10,7 +10,7 @@ export default function Home() {
   const [src, setSrc] = useState(null); // This would be your image src, possibly a canvas or similar
   const canvasRef = useRef(null);
 
-  const handleSliderChange = (brightnessValue) => {
+  const handleBrightness = (brightnessValue) => {
     if (!cv || !src) return; // Ensure OpenCV and source image are loaded
     console.log("test")
     if (canvasRef.current) {
@@ -18,7 +18,7 @@ export default function Home() {
       let srcMat = cv.imread(canvasRef.current); // Read from the canvas
       let dstMat = new cv.Mat(); // Renamed from 'dst' to 'dstMat'
       console.log(srcMat)
-      cv.cvtColor(srcMat, dstMat, cv.COLOR_RGBA2GRAY, 0);
+      srcMat.convertTo(dstMat, -1, 1, brightnessValue);
       cv.imshow(canvasRef.current, dstMat);
       srcMat.delete();
       dstMat.delete();
@@ -34,11 +34,11 @@ export default function Home() {
             <ImageUploader imageSrc={src} setImageSrc={setSrc} canvasRef={canvasRef}/>
         </div>
         <div className="flex-1 p-4 max-w-md overflow-auto">
-            <SlideBar title="亮度" onValueChange={handleSliderChange}/>
-            <SlideBar title="對比" onValueChange={handleSliderChange}/>
-            <SlideBar title="亮部" onValueChange={handleSliderChange}/>
-            <SlideBar title="陰影" onValueChange={handleSliderChange}/>
-            <SlideBar title="色溫" onValueChange={handleSliderChange}/>
+            <SlideBar min={0} max={100} step={10} initialData={0} title="亮度" onValueChange={handleBrightness}/>
+            <SlideBar title="對比"/>
+            <SlideBar title="亮部"/>
+            <SlideBar title="陰影"/>
+            <SlideBar title="色溫"/>
         </div>
       </div>
     </main>
