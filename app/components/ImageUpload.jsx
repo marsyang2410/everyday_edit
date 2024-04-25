@@ -1,22 +1,37 @@
 // /components/ImageUploader.jsx
-import React, { useState } from 'react';
+import React, { useState , useRef , useEffect } from 'react';
 
-function ImageUploader() {
-    const [imageSrc, setImageSrc] = useState(null);
+function ImageUploader({imageSrc,setImageSrc,canvasRef}) {
 
     const handleImageChange = (event) => {
         const file = event.target.files[0];
         if (file && file.type.startsWith('image/')) {
             const reader = new FileReader();
-            reader.onload = (e) => setImageSrc(e.target.result);
+            reader.onload = (e) => {
+                setImageSrc(e.target.result);
+            }
             reader.readAsDataURL(file);
         } else {
             alert('Please select an image file.');
         }
     };
-
+   
+    useEffect(() => {
+        if (imageSrc && canvasRef.current) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            img.onload = () => {
+                // Resize canvas to match image dimensions
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0); // Draw the image at the top left corner
+            };
+            img.src = imageSrc;
+        }
+    }, [imageSrc]);
     return (
-        <div class="flex items-center justify-center w-full">
+        <div className="flex items-center justify-center w-full">
          {!imageSrc && (
                 <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-800 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-gray-500">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
@@ -31,7 +46,8 @@ function ImageUploader() {
             )}
         {imageSrc && (
                 <div className="mt-4">
-                    <img src={imageSrc} alt="Uploaded" className="max-w-full h-auto rounded-lg" />
+                    {/* <img id="canvasInput" src={imageSrc} alt="Uploaded" className="max-w-full h-auto rounded-lg" style={{display:'none'}}/> */}
+                    <canvas ref={canvasRef} className="mt-4 max-w-full h-auto rounded-lg"></canvas>
                 </div>
         )}
         </div> 
