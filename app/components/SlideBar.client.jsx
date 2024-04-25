@@ -1,8 +1,8 @@
 import React from 'react'
 import { useState , useEffect } from 'react';
 
-export default function SlideBar({title,onValueChange}) {
-  const [value, setValue] = useState(0); // Default value
+export default function SlideBar({min = 0,max = 100,step = 10,initialData = 50,title = "unknown",onValueChange = () => {} }) {
+  const [value, setValue] = useState(initialData); // Default value
   useEffect(() => {
     onValueChange(value); // Propagate the change to the parent component
   }, [value]);
@@ -19,10 +19,10 @@ export default function SlideBar({title,onValueChange}) {
         id="steps-range"
         onChange={handleChange}
         type="range"
-        min="-1"
-        max="1"
+        min={min}
+        max={max}
         value={value}
-        step="0.2"
+        step={step}
         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
     />
     </div>
