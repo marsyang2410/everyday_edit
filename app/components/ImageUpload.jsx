@@ -16,20 +16,20 @@ function ImageUploader({imageSrc,setImageSrc,canvasRef}) {
         }
     };
    
-    useEffect(() => {
-        if (imageSrc && canvasRef.current) {
-            const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            img.onload = () => {
-                // Resize canvas to match image dimensions
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0); // Draw the image at the top left corner
-            };
-            img.src = imageSrc;
-        }
-    }, [imageSrc]);
+    // useEffect(() => {
+    //     if (imageSrc && canvasRef.current) {
+    //         const canvas = canvasRef.current;
+    //         const ctx = canvas.getContext('2d');
+    //         const img = new Image();
+    //         img.onload = () => {
+    //             // Resize canvas to match image dimensions
+    //             canvas.width = img.width;
+    //             canvas.height = img.height;
+    //             ctx.drawImage(img, 0, 0); // Draw the image at the top left corner
+    //         };
+    //         img.src = imageSrc;
+    //     }
+    // }, [imageSrc]);
     return (
         <div className="flex items-center justify-center w-full">
          {!imageSrc && (
