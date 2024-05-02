@@ -8,6 +8,7 @@ export default function SlideBar({min = 0,max = 100,step = 10,initialData = 50,t
   }, [value]);
 
   const handleChange = (e) => {
+    // console.log(e)
     setValue(parseFloat(e.target.value));
   };
   return (
