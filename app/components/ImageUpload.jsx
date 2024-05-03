@@ -47,7 +47,7 @@ function ImageUploader({imageSrc,setImageSrc,canvasRef}) {
         {imageSrc && (
                 <div className="mt-4">
                     {/* <img id="canvasInput" src={imageSrc} alt="Uploaded" className="max-w-full h-auto rounded-lg" style={{display:'none'}}/> */}
-                    <canvas ref={canvasRef} className="mt-4 max-w-full h-auto rounded-lg"></canvas>
+                    <canvas id="maincanvas" ref={canvasRef} className="mt-4 max-w-full h-auto rounded-lg"></canvas>
                 </div>
         )}
         </div> 

@@ -4,6 +4,7 @@ import SlideBar from "./components/SlideBar.client.jsx";
 import ImageUploader from "./components/ImageUpload.jsx";
 import React , { useState , useEffect , useRef } from "react";
 import cv from "opencv.js"
+import ShaderObject from "./components/shader.js";
 
 export default function Home() {
   const [src, setSrc] = useState(null); 
@@ -12,6 +13,8 @@ export default function Home() {
   const [brightness, setbrightness] = useState(1)
   const [contrast, setcontrast] = useState(127)
   const [saturation, setsaturation] = useState(127)
+  const [whitePatchness, setwhitepatch] = useState(127)
+
 
   const matRef = useRef(null); // Using a ref to manage OpenCV Mat objects
 
@@ -153,40 +156,79 @@ export default function Home() {
   }
 
   function handleColorSaturation(saturationValue) {
-    if (!matRef.current) return;
+    if (!canvasRef.current) return;
+    const canvas = canvasRef.current;
 
-    let hsv = new cv.Mat();
-    cv.cvtColor(matRef.current, hsv, cv.COLOR_BGR2HSV);
-    let lutEqual = cv.matFromArray(1, 256, cv.CV_8UC1, Array(256).fill().map((_, i) => i));
-    let lutWeaken = cv.matFromArray(1, 256, cv.CV_8UC1, Array(256).fill().map((_, i) => Math.round(i*saturationValue/255)));
-    let lutSWeaken = new cv.Mat();
-    let lutVector = new cv.MatVector();
-    lutVector.push_back(lutEqual);
-    lutVector.push_back(lutWeaken);
-    lutVector.push_back(lutEqual);
-    cv.merge(lutVector, lutSWeaken);
-    let blendSWeaken = new cv.Mat();
-    cv['onRuntimeInitialized'] = function() {
-      cv.LUT(hsv, lutSWeaken, blendSWeaken);
-      cv.LUT(hsv, lutSWeaken, blendSWeaken);
+    // Convert to HSV
+    let hsvMat = new cv.Mat();
+    cv.cvtColor(matRef.current, hsvMat, cv.COLOR_BGR2HSV, 0);
 
-      lutWeaken.delete();
-      lutSWeaken.delete();
-      lutEqual.delete();
-      lutVector.delete();
+    // Split into channels
+    let hsvChannels = new cv.MatVector();
+    cv.split(hsvMat, hsvChannels);
+    let saturation = hsvChannels.get(1);
 
-      try {
-        cv.imshow(canvasRef.current, hsv);
+    // Multiply the saturation channel by the factor
+    let saturationFactor = new cv.Mat(saturation.rows, saturation.cols, saturation.type(), new cv.Scalar(saturationValue));
+    let newSaturation = new cv.Mat();
+    cv.multiply(saturation, saturationFactor, newSaturation);
+    saturation.delete();  // Clean up old saturation
+
+    // Replace the channel and merge back
+    hsvChannels.set(1, newSaturation);
+    cv.merge(hsvChannels, hsvMat);
+
+    // Convert back to BGR
+    let bgrMat = new cv.Mat();
+    cv.cvtColor(hsvMat, bgrMat, cv.COLOR_HSV2BGR);
+
+    // Display the result
+    try {
+        cv.imshow(canvas, bgrMat);
         matRef.current.delete();
-        matRef.current = hsv;
-      } catch (error) {
+        matRef.current = bgrMat;
+    } catch (error) {
         console.error("Failed to display image on canvas:", error);
-      }
-      setsaturation(saturationValue)
-    };
-  
+    }
+
+    // Clean up
+    hsvMat.delete();
+    hsvChannels.delete();
+    newSaturation.delete();
+    saturationFactor.delete();
+    setsaturation(saturationValue);
   }
 
+  function handleWhitePatch(whitePatchValue){
+    if (!canvasRef.current) return;
+
+    let gray = new cv.Mat();
+    cv.cvtColor(matRef.current, gray, cv.COLOR_BGR2GRAY);
+
+    let sorted = cv.sort(gray, cv.SORT_ASCENDING);
+    let index = Math.floor(sorted.rows * sorted.cols * whitePatchValue / 100);
+    let threshold = sorted.ucharPtr(Math.floor(index / sorted.cols), index % sorted.cols)[0];
+    sorted.delete();
+
+    let whitePatch = new cv.Mat();
+    gray.convertTo(whitePatch, cv.CV_32F, 1.0 / threshold);
+    cv.min(whitePatch, new cv.Mat(gray.rows, gray.cols, cv.CV_32F, new cv.Scalar(1.0)), whitePatch);
+
+    let output = new cv.Mat();
+    whitePatch.convertTo(whitePatch, cv.CV_8U, 255.0);
+    cv.cvtColor(whitePatch, output, cv.COLOR_GRAY2BGR);
+
+    try {
+      cv.imshow(canvas, output);
+      matRef.current.delete();
+      matRef.current = output;
+    } catch (error) {
+        console.error("Failed to display image on canvas:", error);
+    }
+    gray.delete();
+    whitePatch.delete();
+    setwhitepatch(whitePatchValue);
+  }
 
   const sliders = [
     {
@@ -215,11 +257,11 @@ export default function Home() {
     },
     {
         min: 0,
-        max: 255,
+        max: 100,
         step: 1,
-        title: "對比",
-        initialData: 127,
-        onValueChange: handleContrast
+        title: "白平衡",
+        initialData: 50,
+        onValueChange: handleWhitePatch
     }
   ];
   return (
