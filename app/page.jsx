@@ -11,6 +11,8 @@ export default function Home() {
   const histCanvas = useRef(null)
   const [brightness, setbrightness] = useState(1)
   const [contrast, setcontrast] = useState(127)
+  const [saturation, setsaturation] = useState(127)
+
   const matRef = useRef(null); // Using a ref to manage OpenCV Mat objects
 
   const drawDefaultBackground = () => {
@@ -150,6 +152,41 @@ export default function Home() {
     setcontrast(contrastValue);
   }
 
+  function handleColorSaturation(saturationValue) {
+    if (!matRef.current) return;
+
+    let hsv = new cv.Mat();
+    cv.cvtColor(matRef.current, hsv, cv.COLOR_BGR2HSV);
+    let lutEqual = cv.matFromArray(1, 256, cv.CV_8UC1, Array(256).fill().map((_, i) => i));
+    let lutWeaken = cv.matFromArray(1, 256, cv.CV_8UC1, Array(256).fill().map((_, i) => Math.round(i*saturationValue/255)));
+    let lutSWeaken = new cv.Mat();
+    let lutVector = new cv.MatVector();
+    lutVector.push_back(lutEqual);
+    lutVector.push_back(lutWeaken);
+    lutVector.push_back(lutEqual);
+    cv.merge(lutVector, lutSWeaken);
+    let blendSWeaken = new cv.Mat();
+    cv['onRuntimeInitialized'] = function() {
+      cv.LUT(hsv, lutSWeaken, blendSWeaken);
+      cv.LUT(hsv, lutSWeaken, blendSWeaken);
+
+      lutWeaken.delete();
+      lutSWeaken.delete();
+      lutEqual.delete();
+      lutVector.delete();
+
+      try {
+        cv.imshow(canvasRef.current, hsv);
+        matRef.current.delete();
+        matRef.current = hsv;
+      } catch (error) {
+        console.error("Failed to display image on canvas:", error);
+      }
+      setsaturation(saturationValue)
+    };
+  
+  }
+
 
   const sliders = [
     {
@@ -172,9 +209,9 @@ export default function Home() {
         min: 0,
         max: 255,
         step: 1,
-        title: "對比",
+        title: "鮮豔度",
         initialData: 127,
-        onValueChange: handleContrast
+        onValueChange: handleColorSaturation
     },
     {
         min: 0,
