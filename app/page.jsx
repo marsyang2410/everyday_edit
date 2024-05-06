@@ -3,7 +3,8 @@
 import SlideBar from "./components/SlideBar.client.jsx";
 import ImageUploader from "./components/ImageUpload.jsx";
 import React, { useState, useEffect, useRef } from "react";
-// const cv = require("./opencv.js");
+import * as cv from "@techstark/opencv-js"
+
 export default function Home() {
   const [src, setSrc] = useState(null);
   const canvasRef = useRef(null);
@@ -12,8 +13,10 @@ export default function Home() {
   const [contrast, setcontrast] = useState(127);
   const [saturation, setsaturation] = useState(127);
   const [whitePatchness, setwhitepatch] = useState(127);
+  const [imageList, setimageList] = useState([])
 
   const matRef = useRef(null); // Using a ref to manage OpenCV Mat objects
+  // console.log(Object.keys(cv).filter((key) => !key.includes("dynCall")));
 
   const drawDefaultBackground = () => {
     const canvas = histCanvas.current;
@@ -168,7 +171,7 @@ export default function Home() {
     let hsvChannels = new cv.MatVector();
     cv.split(hsvMat, hsvChannels);
     let saturation = hsvChannels.get(1);
-
+    cv.LUT()
     // Multiply the saturation channel by the factor
     let saturationFactor = new cv.Mat(
       saturation.rows,
@@ -278,49 +281,62 @@ export default function Home() {
     },
   ];
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="flex flex-row w-full h-screen">
-        <div className="w-1/2 h-400 p-4">
-          <ImageUploader
-            imageSrc={src}
-            setImageSrc={setSrc}
-            canvasRef={canvasRef}
-          />
-        </div>
-        <div className="flex-1 p-4 max-w-md">
-          <div className="flex flex-col h-full">
-            <div className="overflow-auto">
-              {sliders.map((slider, index) => (
-                <SlideBar
-                  key={index}
-                  min={slider.min}
-                  max={slider.max}
-                  step={slider.step}
-                  initialData={slider.initialData}
-                  title={slider.title}
-                  onValueChange={slider.onValueChange}
-                />
-              ))}
-            </div>
-            <div className="flex-shrink-0 mt-4">
-              <canvas ref={histCanvas} className="w-full"></canvas>
-            </div>
+    <main className="flex flex-col items-center justify-start p-24 min-h-screen w-full">
+    <div className="flex flex-row w-full">
+      <div className="w-1/2 p-4">
+        <ImageUploader
+          imageSrc={src}
+          setImageSrc={setSrc}
+          canvasRef={canvasRef}
+          setImageList={setimageList}
+        />
+        {src && (
+          <div className="mt-4">
+            <canvas 
+              ref={canvasRef} 
+              className="rounded-lg"
+              style={{ width: '100%', height: '400px' }} // Use percentage for width for responsiveness
+            ></canvas>
+          </div>
+        )}
+      </div>
+      <div className="flex-1 p-4">
+        <div className="flex flex-col h-full"> {/* Adjusted to fill the column space */}
+          <div className="overflow-auto flex-grow">
+            {sliders.map((slider, index) => (
+              <SlideBar
+                key={index}
+                min={slider.min}
+                max={slider.max}
+                step={slider.step}
+                initialData={slider.initialData}
+                title={slider.title}
+                onValueChange={slider.onValueChange}
+              />
+            ))}
+          </div>
+          <div className="mt-4">
+            <canvas ref={histCanvas} className="w-full"></canvas>
           </div>
         </div>
       </div>
-      <script
-        async
-        src="https://docs.opencv.org/4.5.4/opencv.js"
-        type="text/javascript"
-      ></script>
-    </main>
+    </div>
+    <div className="w-full p-4">
+      <div className="flex space-x-4">
+        {imageList.map((image, index) => (
+          <img key={index} src={image} alt="image description" className="w-24 h-32 object-cover" />
+        ))}
+        <div className="w-24 h-32">
+          <ImageUploader
+            imageSrc={null}
+            setImageSrc={setSrc}
+            canvasRef={canvasRef}
+            setImageList={setimageList}
+          />
+        </div>
+      </div>
+    </div>
+  </main>
+  
   );
-}
-
-export async function loader({ params, request, context }) {
-  const initialData = {
-    message: "This is server-side fetched data.",
-  };
-
-  return initialData;
 }
