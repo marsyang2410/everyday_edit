@@ -2,13 +2,17 @@
 
 import SlideBar from "./components/SlideBar.client.jsx";
 import ImageUploader from "./components/ImageUpload.jsx";
+import Header from "./components/Header.jsx"
 import React, { useState, useEffect, useRef } from "react";
 import * as cv from "@techstark/opencv-js"
+
+const DEBUG = 0;
 
 export default function Home() {
   const [src, setSrc] = useState(null);
   const canvasRef = useRef(null);
   const histCanvas = useRef(null);
+  const [currentMat, setcurrentMat] = useState(null);
   const [brightness, setbrightness] = useState(1);
   const [contrast, setcontrast] = useState(127);
   const [saturation, setsaturation] = useState(127);
@@ -32,15 +36,18 @@ export default function Home() {
     ctx.textBaseline = "middle";
     // ctx.fillText("No Image Loaded", canvas.width / 2, canvas.height / 2);
   };
+  useEffect(() => {
+    // Assuming OpenCV is attached to the window object
+    cv['onRuntimeInitialized']= () => {
+      setcurrentMat(new cv.Mat());
+    }
+  }, []);
 
   useEffect(() => {
     if (!src) {
       drawDefaultBackground();
     }
-    // Clean up the previous Mat before creating a new one
-    if (matRef.current) {
-      matRef.current.delete();
-    }
+    
     if (src && canvasRef.current) {
       const canvas = canvasRef.current;
       const ctx = canvas.getContext("2d");
@@ -50,6 +57,9 @@ export default function Home() {
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0); // Draw the image at the top left corner
+        if (matRef.current) {
+          matRef.current.delete();
+        }
         matRef.current = cv.imread(canvasRef.current);
         drawHistGram();
       };
@@ -61,12 +71,32 @@ export default function Home() {
     drawHistGram();
   }, [matRef.current]);
 
-  const drawHistGram = () => {
+  const handleImageChange = (image) => {
+    if (!canvasRef.current) return
+    
+    if( DEBUG ) return;
+    console.log("handleImageChange");
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx.drawImage(img, 0, 0); // Draw the image at the top left corner
+      matRef.current = cv.imread(canvasRef.current);
+      drawHistGram();
+    };
+    img.src = image;
+  }
+
+  const drawHistGram = (flag = cv.COLOR_RGBA2GRAY) => {
     if (cv && cv.imread) {
       if (!canvasRef.current) return;
       let srcMat = new cv.Mat(); // Load your image into srcMat
-      matRef.current.copyTo(srcMat);
-      cv.cvtColor(srcMat, srcMat, cv.COLOR_RGBA2GRAY, 0); // Convert to grayscale
+      if( DEBUG ) return;
+      if (!matRef.current) return;
+      console.log(matRef.current);
+      cv.cvtColor(matRef.current, srcMat, flag, 0); // Convert to grayscale
 
       // Calculate histogram
       let hist = new cv.Mat();
@@ -161,50 +191,38 @@ export default function Home() {
 
   function handleColorSaturation(saturationValue) {
     if (!canvasRef.current) return;
+    if (!matRef.current) return;
+
     const canvas = canvasRef.current;
 
     // Convert to HSV
     let hsvMat = new cv.Mat();
-    cv.cvtColor(matRef.current, hsvMat, cv.COLOR_BGR2HSV, 0);
+    cv.cvtColor(matRef.current, hsvMat, cv.COLOR_RGB2HSV, 0);
 
-    // Split into channels
-    let hsvChannels = new cv.MatVector();
-    cv.split(hsvMat, hsvChannels);
-    let saturation = hsvChannels.get(1);
-    cv.LUT()
-    // Multiply the saturation channel by the factor
-    let saturationFactor = new cv.Mat(
-      saturation.rows,
-      saturation.cols,
-      saturation.type(),
-      new cv.Scalar(saturationValue)
-    );
-    let newSaturation = new cv.Mat();
-    cv.multiply(saturation, saturationFactor, newSaturation);
-    saturation.delete(); // Clean up old saturation
+    let lutWeaken = new cv.Mat(256, 1, cv.CV_8UC1);
 
-    // Replace the channel and merge back
-    hsvChannels.set(1, newSaturation);
-    cv.merge(hsvChannels, hsvMat);
-
-    // Convert back to BGR
-    let bgrMat = new cv.Mat();
-    cv.cvtColor(hsvMat, bgrMat, cv.COLOR_HSV2BGR);
-
-    // Display the result
+    for (let i = 0; i < 256; ++i) {
+      lutWeaken.data[i] = Math.min(Math.max(255, i * saturation));
+    }
+    let channels = new cv.MatVector();
+    cv.split(hsvMat, channels);
+    let tmp = new cv.Mat();
+    console.table(channels.get(1))
+    cv.LUT(channels.get(1), lutWeaken, tmp);
+    channels.set(1, tmp);
+    let dst = new cv.Mat();
+    cv.merge(channels, dst);
+    cv.cvtColor(dst, dst, cv.COLOR_HSV2RGB, 0);
     try {
-      cv.imshow(canvas, bgrMat);
+      cv.imshow(canvas, dst);
       matRef.current.delete();
-      matRef.current = bgrMat;
+      matRef.current = dst;
     } catch (error) {
       console.error("Failed to display image on canvas:", error);
     }
-
-    // Clean up
     hsvMat.delete();
-    hsvChannels.delete();
-    newSaturation.delete();
-    saturationFactor.delete();
+    lutWeaken.delete();
+    channels.delete();
     setsaturation(saturationValue);
   }
 
@@ -265,10 +283,10 @@ export default function Home() {
     },
     {
       min: 0,
-      max: 255,
-      step: 1,
+      max: 2,
+      step: 0.1,
       title: "鮮豔度",
-      initialData: 127,
+      initialData: 1,
       onValueChange: handleColorSaturation,
     },
     {
@@ -281,9 +299,11 @@ export default function Home() {
     },
   ];
   return (
-    <main className="flex flex-col items-center justify-start p-24 min-h-screen w-full">
-    <div className="flex flex-row w-full">
-      <div className="w-1/2 p-4">
+    <div>
+    <Header></Header>
+    <main className="flex flex-col items-center justify-start p-10 min-h-screen w-full">
+    <div className="flex flex-row w-full bg-red-100">
+      <div className="w-1/2 p-4 bg-green-50">
         <ImageUploader
           imageSrc={src}
           setImageSrc={setSrc}
@@ -295,7 +315,7 @@ export default function Home() {
             <canvas 
               ref={canvasRef} 
               className="rounded-lg"
-              style={{ width: '100%', height: '400px' }} // Use percentage for width for responsiveness
+              style={{ maxWidth: '320px', height: '400px' }} // Use percentage for width for responsiveness
             ></canvas>
           </div>
         )}
@@ -321,22 +341,29 @@ export default function Home() {
         </div>
       </div>
     </div>
-    <div className="w-full p-4">
+    <div className="w-full p-4 bg-black">
       <div className="flex space-x-4">
-        {imageList.map((image, index) => (
-          <img key={index} src={image} alt="image description" className="w-24 h-32 object-cover" />
-        ))}
+      {imageList.map((image, index) => (
+        <button key={index} className="focus:outline-none" onClick={()=>{
+          // console.log("clicked!");
+          handleImageChange(image);
+          }}>
+          <img src={image} alt="image description" className="w-24 h-32 object-cover" />
+        </button>
+      ))}
+
         <div className="w-24 h-32">
           <ImageUploader
             imageSrc={null}
             setImageSrc={setSrc}
-            canvasRef={canvasRef}
             setImageList={setimageList}
+            Text = ""
           />
         </div>
       </div>
     </div>
   </main>
+  </div>
   
   );
 }
