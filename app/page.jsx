@@ -4,11 +4,9 @@ import SlideBar from "./components/SlideBar.client.jsx";
 import ImageUploader from "./components/ImageUpload.jsx";
 import Header from "./components/Header.jsx"
 import React, { useState, useEffect, useRef } from "react";
-import {
-  Collapse,
-  Ripple,
-  initTWE,
-} from "tw-elements";
+import { Button, Card, Collapse } from "reactstrap";
+
+
 import * as cv from "@techstark/opencv-js"
 
 const DEBUG = 0;
@@ -20,14 +18,14 @@ export default function Home() {
   const [currentMat, setcurrentMat] = useState(null);
   const [brightness, setbrightness] = useState(1);
   const [contrast, setcontrast] = useState(127);
-  const [saturation, setsaturation] = useState(127);
-  const [whitePatchness, setwhitepatch] = useState(127);
+  const [saturation, setsaturation] = useState(1);
+  const [shadow, setshadow] = useState(1);
   const [imageList, setimageList] = useState([])
+  const [histgramReady, sethisgramReady] = useState(false);
 
-  const matRef = useRef(null); // Using a ref to manage OpenCV Mat objects
-  // console.log(Object.keys(cv).filter((key) => !key.includes("dynCall")));
-
-  const drawDefaultBackground = () => {
+  const matRef = useRef(null); 
+  
+  const drawDefaultBackground = (callback) => {
     const canvas = histCanvas.current;
     if (!canvas) return;
 
@@ -39,10 +37,10 @@ export default function Home() {
     ctx.font = "20px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    // ctx.fillText("No Image Loaded", canvas.width / 2, canvas.height / 2);
+    if (callback) callback();
   };
   useEffect(() => {
-    // Assuming OpenCV is attached to the window object
+   
     cv['onRuntimeInitialized']= () => {
       setcurrentMat(new cv.Mat());
     }
@@ -50,7 +48,9 @@ export default function Home() {
 
   useEffect(() => {
     if (!src) {
-      drawDefaultBackground();
+      drawDefaultBackground(()=>{
+        sethisgramReady(true);
+    });
     }
     
     if (src && canvasRef.current) {
@@ -124,18 +124,15 @@ export default function Home() {
       let height = canvas.height;
       let binWidth = Math.round(width / histSize[0]); // Width of each bin
 
-      // Clear the canvas
       ctx.fillStyle = "lightgray"; // Set background color
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "white";
 
-      // Draw histogram
       for (let i = 0; i < histSize[0]; i++) {
         let binVal = (hist.data32F[i] * height) / max;
         ctx.fillRect(i * binWidth, height - binVal, binWidth, binVal);
       }
 
-      // Clean up
       srcMat.delete();
       hist.delete();
       mask.delete();
@@ -145,32 +142,29 @@ export default function Home() {
     }
   };
 
-  // Example function to adjust brightness using a slider
   const handleBrightness = (newBrightness) => {
-    if (!matRef.current) return;
-    if (canvasRef.current) {
-      let dstMat = new cv.Mat();
-      matRef.current.convertTo(dstMat, -1, 1, newBrightness - brightness);
-      console.log("Canvas reference:", canvasRef.current);
-      console.log("dst matrix:", dstMat);
-      if (dstMat.empty()) {
-        console.error("Destination matrix is empty.");
-        return;
-      }
-      try {
-        cv.imshow(canvasRef.current, dstMat);
-        matRef.current.delete();
-        matRef.current = dstMat;
-      } catch (error) {
-        console.error("Failed to display image on canvas:", error);
-      }
-      setbrightness(newBrightness);
+    if (!canvasRef.current || !matRef.current) return;
+
+    let dstMat = new cv.Mat();
+    matRef.current.convertTo(dstMat, -1, 1, newBrightness - brightness);
+    console.log("Canvas reference:", canvasRef.current);
+    console.log("dst matrix:", dstMat);
+    if (dstMat.empty()) {
+      console.error("Destination matrix is empty.");
+      return;
     }
+    try {
+      cv.imshow(canvasRef.current, dstMat);
+      matRef.current.delete();
+      matRef.current = dstMat;
+    } catch (error) {
+      console.error("Failed to display image on canvas:", error);
+    }
+    setbrightness(newBrightness);
   };
   function handleContrast(contrastValue) {
     if (!matRef.current) return;
 
-    // Create destination matrix
     let dst = new cv.Mat();
 
     const B = 0 / 255.0;
@@ -195,26 +189,23 @@ export default function Home() {
   }
 
   function handleColorSaturation(saturationValue) {
-    if (!canvasRef.current) return;
-    if (!matRef.current) return;
+    if (!canvasRef.current || !matRef.current) return;
 
     const canvas = canvasRef.current;
-
-    // Convert to HSV
     let hsvMat = new cv.Mat();
     cv.cvtColor(matRef.current, hsvMat, cv.COLOR_RGB2HSV, 0);
 
     let lutWeaken = new cv.Mat(256, 1, cv.CV_8UC1);
-
     for (let i = 0; i < 256; ++i) {
-      lutWeaken.data[i] = Math.min(Math.max(255, i * saturation));
+      lutWeaken.data[i] = Math.max(Math.min(255, i * saturationValue),0);
     }
+
     let channels = new cv.MatVector();
     cv.split(hsvMat, channels);
     let tmp = new cv.Mat();
-    console.table(channels.get(1))
     cv.LUT(channels.get(1), lutWeaken, tmp);
     channels.set(1, tmp);
+
     let dst = new cv.Mat();
     cv.merge(channels, dst);
     cv.cvtColor(dst, dst, cv.COLOR_HSV2RGB, 0);
@@ -228,46 +219,41 @@ export default function Home() {
     hsvMat.delete();
     lutWeaken.delete();
     channels.delete();
+    tmp.delete();
     setsaturation(saturationValue);
   }
 
-  function handleWhitePatch(whitePatchValue) {
-    if (!canvasRef.current) return;
+  function handleShadow(shadowValue) {
+    if (!canvasRef.current || !matRef.current) return;
 
-    let gray = new cv.Mat();
-    cv.cvtColor(matRef.current, gray, cv.COLOR_BGR2GRAY);
+    let grayscaleMat = new cv.Mat();
+    cv.cvtColor(matRef.current, grayscaleMat, cv.COLOR_RGB2GRAY, 0);
 
-    let sorted = cv.sort(gray, cv.SORT_ASCENDING);
-    let index = Math.floor((sorted.rows * sorted.cols * whitePatchValue) / 100);
-    let threshold = sorted.ucharPtr(
-      Math.floor(index / sorted.cols),
-      index % sorted.cols
-    )[0];
-    sorted.delete();
-
-    let whitePatch = new cv.Mat();
-    gray.convertTo(whitePatch, cv.CV_32F, 1.0 / threshold);
-    cv.min(
-      whitePatch,
-      new cv.Mat(gray.rows, gray.cols, cv.CV_32F, new cv.Scalar(1.0)),
-      whitePatch
-    );
-
-    let output = new cv.Mat();
-    whitePatch.convertTo(whitePatch, cv.CV_8U, 255.0);
-    cv.cvtColor(whitePatch, output, cv.COLOR_GRAY2BGR);
-
-    try {
-      cv.imshow(canvas, output);
-      matRef.current.delete();
-      matRef.current = output;
-    } catch (error) {
-      console.error("Failed to display image on canvas:", error);
+    let thresholdMat = new cv.Mat();
+    cv.adaptiveThreshold(grayscaleMat, thresholdMat, 200, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, 999, 2);
+    
+    let dstMat = new cv.Mat();
+    cv.cvtColor(thresholdMat, dstMat, cv.COLOR_GRAY2RGB, 4);
+    console.log(matRef.current.type(), dstMat.type());
+    try{
+      cv.addWeighted(matRef.current, 1.0, dstMat, 0.1, 0, dstMat);
     }
-    gray.delete();
-    whitePatch.delete();
-    setwhitepatch(whitePatchValue);
+    catch(e){
+      console.error(e);
+    }
+    try {
+        cv.imshow(canvasRef.current, dstMat);
+        matRef.current.delete(); 
+        matRef.current = dstMat
+    } catch (error) {
+        console.error("Failed to display image on canvas:", error);
+    } finally {
+        grayscaleMat.delete();
+        thresholdMat.delete();
+    }
   }
+
+  
 
   const sliders = [
     {
@@ -287,107 +273,90 @@ export default function Home() {
       onValueChange: handleContrast,
     },
     {
-      min: 0,
-      max: 2,
-      step: 0.1,
+      min: 0.8,
+      max: 1.2,
+      step: 0.01,
       title: "鮮豔度",
       initialData: 1,
       onValueChange: handleColorSaturation,
     },
     {
-      min: 0,
-      max: 100,
-      step: 1,
-      title: "白平衡",
-      initialData: 50,
-      onValueChange: handleWhitePatch,
+      min: 0.8,
+      max: 1.2,
+      step: 0.01,
+      title: "陰影",
+      initialData: 1,
+      onValueChange: handleShadow,
     },
   ];
   return (
-    <div>
+  <div>
     <Header></Header>
-    <main className="flex flex-col items-center justify-start p-10 min-h-screen w-full">
+  <main className="flex flex-col items-center justify-start p-10 min-h-screen w-full">
     <div className="flex flex-row w-full bg-red-100">
       <div className="w-1/2 p-4 bg-green-50">
+      { histgramReady && (
         <ImageUploader
-          imageSrc={src}
-          setImageSrc={setSrc}
-          canvasRef={canvasRef}
-          setImageList={setimageList}
+        imageSrc={src}
+        setImageSrc={setSrc}
+        canvasRef={canvasRef}
+        setImageList={setimageList}
         />
-        {src && (
-          <div className="mt-4">
-            <canvas 
-              ref={canvasRef} 
-              className="rounded-lg"
-              style={{ maxWidth: '320px', height: '400px' }} // Use percentage for width for responsiveness
-            ></canvas>
-          </div>
-        )}
+      )}
+      {src && (
+        <div className="mt-4">
+        <canvas 
+        ref={canvasRef} 
+        className="rounded-lg"
+        style={{ maxWidth: '320px', height: '400px' }} 
+        ></canvas>
+        </div>
+      )}
       </div>
       <div className="flex-1 p-4">
-        <div className="flex flex-col h-full"> {/* Adjusted to fill the column space */}
-        <button
-          className="inline-block rounded bg-primary px-6 pb-2 pt-2.5 text-xs font-medium uppercase leading-normal text-white shadow-primary-3 transition duration-150 ease-in-out hover:bg-primary-accent-300 hover:shadow-primary-2 focus:bg-primary-accent-300 focus:shadow-primary-2 focus:outline-none focus:ring-0 active:bg-primary-600 active:shadow-primary-2 dark:shadow-black/30 dark:hover:shadow-dark-strong dark:focus:shadow-dark-strong dark:active:shadow-dark-strong"
-          type="button"
-          data-twe-collapse-init
-          data-twe-ripple-init
-          data-twe-ripple-color="light"
-          data-twe-target="#collapseExample"
-          aria-expanded="false"
-          aria-controls="collapseExample"
-        >
-          Button with data-twe-target
-        </button>
-
-        <div
-          className="!visible hidden"
-          id="collapseExample"
-          data-twe-collapse-item
-        >
+        <div className="flex flex-col"> 
         <div className="overflow-auto flex-grow">
-          {sliders.map((slider, index) => (
-            <SlideBar
-              key={index}
-              min={slider.min}
-              max={slider.max}
-              step={slider.step}
-              initialData={slider.initialData}
-              title={slider.title}
-              onValueChange={slider.onValueChange}
-            />
-          ))}
+        {sliders.map((slider, index) => (
+        <SlideBar
+        key={index}
+        min={slider.min}
+        max={slider.max}
+        step={slider.step}
+        initialData={slider.initialData}
+        title={slider.title}
+        onValueChange={slider.onValueChange}
+        />
+        ))}
         </div>
         </div>
-          <div className="mt-4">
-            <canvas ref={histCanvas} className="w-full"></canvas>
-          </div>
+        <div className="mt-4">
+          <canvas ref={histCanvas} className="w-full"></canvas> 
+        </div>
         </div>
       </div>
-    </div>
     <div className="w-full p-4 bg-black">
       <div className="flex space-x-4">
       {imageList.map((image, index) => (
-        <button key={index} className="focus:outline-none" onClick={()=>{
-          // console.log("clicked!");
-          handleImageChange(image);
-          }}>
-          <img src={image} alt="image description" className="w-24 h-32 object-cover" />
-        </button>
+      <button key={index} className="focus:outline-none" onClick={()=>{
+      // console.log("clicked!");
+      handleImageChange(image);
+      }}>
+      <img src={image} alt="image description" className="w-24 h-32 object-cover" />
+      </button>
       ))}
 
-        <div className="w-24 h-32">
-          <ImageUploader
-            imageSrc={null}
-            setImageSrc={setSrc}
-            setImageList={setimageList}
-            Text = ""
-          />
+      <div className="w-24 h-32">
+      { histgramReady && (
+      <ImageUploader
+      imageSrc={null}
+      setImageSrc={setSrc}
+      setImageList={setimageList}
+      Text = ""
+      />)}
         </div>
       </div>
     </div>
   </main>
   </div>
-  
   );
 }
