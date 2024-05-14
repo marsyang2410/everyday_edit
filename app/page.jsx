@@ -208,7 +208,7 @@ export default function Home() {
 
     let dst = new cv.Mat();
     cv.merge(channels, dst);
-    cv.cvtColor(dst, dst, cv.COLOR_HSV2RGB, 0);
+    cv.cvtColor(dst, dst, cv.COLOR_HSV2RGB, 4);
     try {
       cv.imshow(canvas, dst);
       matRef.current.delete();
@@ -236,7 +236,7 @@ export default function Home() {
     cv.cvtColor(thresholdMat, dstMat, cv.COLOR_GRAY2RGB, 4);
     console.log(matRef.current.type(), dstMat.type());
     try{
-      cv.addWeighted(matRef.current, 1.0, dstMat, 0.1, 0, dstMat);
+      cv.addWeighted(matRef.current, 1.0, dstMat, (shadowValue-1), 0, dstMat);
     }
     catch(e){
       console.error(e);
@@ -251,6 +251,7 @@ export default function Home() {
         grayscaleMat.delete();
         thresholdMat.delete();
     }
+    setshadow(shadowValue);
   }
 
   
