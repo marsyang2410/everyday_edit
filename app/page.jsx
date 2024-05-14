@@ -3,9 +3,9 @@
 import SlideBar from "./components/SlideBar.client.jsx";
 import ImageUploader from "./components/ImageUpload.jsx";
 import Header from "./components/Header.jsx"
+import IconButton from "./components/IconButton.jsx";
+import Collapse from "./components/Collapse.jsx";
 import React, { useState, useEffect, useRef } from "react";
-import { Button, Card, Collapse } from "reactstrap";
-
 
 import * as cv from "@techstark/opencv-js"
 
@@ -304,17 +304,38 @@ export default function Home() {
         />
       )}
       {src && (
-        <div className="mt-4">
+        <div className="flex justify-center bg-black">
         <canvas 
         ref={canvasRef} 
-        className="rounded-lg"
         style={{ maxWidth: '320px', height: '400px' }} 
         ></canvas>
         </div>
       )}
+    <div className="flex justify-center space-x-8">
+      <IconButton>
+      <svg className="w-[48px] h-[48px] text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.651 7.65a7.131 7.131 0 0 0-12.68 3.15M18.001 4v4h-4m-7.652 8.35a7.13 7.13 0 0 0 12.68-3.15M6 20v-4h4"/>
+      </svg>
+      </IconButton>
+
+      <IconButton>
+      <svg className="w-[48px] h-[48px] text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 0 1 1 1v3H9V4a1 1 0 0 1 1-1ZM6 7h12v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7Z"/>
+      </svg>
+      </IconButton>
+
+      <IconButton>
+      <svg className="w-[48px] h-[48px] text-gray-800 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 13V4M7 14H5a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-2m-1-5-4 5-4-5m9 8h.01"/>
+      </svg>
+      </IconButton>
+    </div>
+
       </div>
       <div className="flex-1 p-4">
         <div className="flex flex-col"> 
+        
+        <Collapse>
         <div className="overflow-auto flex-grow">
         {sliders.map((slider, index) => (
         <SlideBar
@@ -328,6 +349,7 @@ export default function Home() {
         />
         ))}
         </div>
+        </Collapse>
         </div>
         <div className="mt-4">
           <canvas ref={histCanvas} className="w-full"></canvas> 
