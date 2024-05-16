@@ -1,7 +1,7 @@
 // /components/ImageUploader.jsx
 import React, { useState , useRef , useEffect } from 'react';
 
-function ImageUploader({imageSrc,setImageSrc,setImageList, Text = "SVG, PNG, JPG or GIF (MAX. 800x400px)"}) {
+function ImageUploader({children, imageSrc, setImageSrc, setImageList}) {
 
     const handleImageChange = (event) => {
         const file = event.target.files[0];
@@ -25,8 +25,7 @@ function ImageUploader({imageSrc,setImageSrc,setImageList, Text = "SVG, PNG, JPG
                     <svg className="w-8 h-8 mb-2 text-gray-500 dark:text-gray-400" aria-hidden="true" fill="none" viewBox="0 0 20 16">
                         <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 13h3a3 3 0 00 0-6h-.025A5.56 5.56 0 0016 6.5 5.5 5.5 0 005.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 000 8h2.167M10 15V6m0 0L8 8m2-2 2 2"/>
                     </svg>
-                    <p className="mb-1 text-sm text-gray-500 dark:text-gray-400"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{Text}</p>
+                    {children}
                 </div>
                 <input id="dropzone-file" type="file" className="hidden" onChange={handleImageChange} accept="image/*" />
             </label>
