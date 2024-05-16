@@ -302,11 +302,11 @@ export default function Home() {
   ];
 
   return (
-    <div>
+    <div className="overflow-hidden">
       <Header />
       <main className="flex flex-col items-center justify-start p-10 min-h-screen w-full">
         <div className="flex flex-row w-full bg-red-100">
-          <div className="w-1/2 p-4 bg-green-50">
+          <div className="w-1/2 p-4 bg-green-50 overflow-hidden	">
             {histogramReady && (
               <ImageUploader
                 imageSrc={src}
@@ -385,8 +385,8 @@ export default function Home() {
               </IconButton>
             </div>
           </div>
-          <div className="flex-1 p-4">
-            <div className="flex flex-col">
+          <div className="flex-1 p-4 overflow-hidden">
+            <div className="flex flex-col ">
               <Collapse text="濾鏡">
               <Card 
                 imageSrc="https://via.placeholder.com/150"

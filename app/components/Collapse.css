@@ -1,6 +1,7 @@
 .collapsible {
   width: 100%;
   background-color: transparent;
+  overflow-x: hidden;
 }
 
 .collapsible-button {
