@@ -6,6 +6,8 @@ import Header from "./components/Header.jsx";
 import IconButton from "./components/IconButton.jsx";
 import Collapse from "./components/Collapse.jsx";
 import Card from "./components/Card.jsx";
+import CardButton from "./components/CardButton.jsx";
+import filter from "./js/filter.js";
 import React, { useState, useEffect, useRef } from "react";
 import './page.css'
 
@@ -157,6 +159,16 @@ export default function Home() {
     srcVec.delete();
   };
 
+  const handleAESHE = () => {
+    let dst = filter.CLAHE(currentMat);
+    try {
+      cv.imshow(canvasRef.current, dst);
+      setCurrentMat(dst);
+    } catch (error) {
+      console.error("Failed to display image on canvas:", error);
+    }
+  }
+
   const handleBrightness = (newBrightness) => {
     if (!canvasRef.current || !currentMat) return;
 
@@ -233,13 +245,13 @@ export default function Home() {
     if (!canvasRef.current || !currentMat) return;
 
     let grayscaleMat = new cv.Mat();
-    cv.cvtColor(currentMat, grayscaleMat, cv.COLOR_RGB2GRAY, 4);
+    cv.cvtColor(currentMat, grayscaleMat, cv.COLOR_RGBA2GRAY, 4);
 
     let thresholdMat = new cv.Mat();
     cv.adaptiveThreshold(grayscaleMat, thresholdMat, 200, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY_INV, 999, 2);
 
     let dstMat = new cv.Mat();
-    cv.cvtColor(thresholdMat, dstMat, cv.COLOR_GRAY2RGB, 4);
+    cv.cvtColor(thresholdMat, dstMat, cv.COLOR_GRAY2RGBA, 4);
 
     try {
       cv.addWeighted(currentMat, 1.0, dstMat, shadowValue - 1, 0, dstMat);
@@ -388,21 +400,27 @@ export default function Home() {
           <div className="flex-1 p-4 overflow-hidden">
             <div className="flex flex-col ">
               <Collapse text="濾鏡">
-              <Card 
-                imageSrc="https://via.placeholder.com/150"
-                title="Card Title 1"
-                description="This is a description of the card 1."
-              />
-              <Card 
-                imageSrc="https://via.placeholder.com/150"
-                title="Card Title 2"
-                description="This is a description of the card 2."
-              />
-              <Card 
-                imageSrc="https://via.placeholder.com/150"
-                title="Card Title 3"
-                description="This is a description of the card 3."
-              />
+              <CardButton onClick={handleAESHE}>
+                <Card 
+                  imageSrc="/img/sample.png"
+                  title="Balanced Contrast Booster"
+                  description="Enhances image contrast adaptively while preserving color integrity and details"
+                />
+              </CardButton>
+              <CardButton>
+                <Card 
+                  imageSrc="https://via.placeholder.com/150"
+                  title="Card Title 2"
+                  description="This is a description of the card 2."
+                />
+              </CardButton>
+              <CardButton>
+                <Card 
+                  imageSrc="https://via.placeholder.com/150"
+                  title="Card Title 3"
+                  description="This is a description of the card 3."
+                />
+              </CardButton>
               </Collapse>
               <Collapse text="顏色">
                 <div className="overflow-auto flex-grow spacing-container">

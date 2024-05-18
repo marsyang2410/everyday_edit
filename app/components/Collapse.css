@@ -28,6 +28,7 @@
 
 .collapsible-content.active {
   max-height: 0px; /* Adjust as needed */
+  overflow-y: hidden; 
   padding: 12px;
 }
 
