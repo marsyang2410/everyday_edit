@@ -202,7 +202,7 @@ export default function Home() {
       console.error("Failed to display image on canvas:", error);
     }
   }
-
+  // tempature commit
   const handleTempature = (tempatureValue) => {
     if (!canvasRef.current || !currentMat) return;
 
