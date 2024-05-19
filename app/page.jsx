@@ -24,6 +24,7 @@ export default function Home() {
   const [contrast, setContrast] = useState(127);
   const [saturation, setSaturation] = useState(1);
   const [shadow, setShadow] = useState(1);
+  const [tempature, setTempature] = useState(1);
   const [imageList, setImageList] = useState([]);
   const [imageIdx, setImageIdx] = useState(0);
   const [histogramReady, setHistogramReady] = useState(false);
@@ -167,6 +168,8 @@ export default function Home() {
   };
 
   const handleAESHE = () => {
+    if (!canvasRef.current || !currentMat) return;
+
     let dst = filter.CLAHE(currentMat);
     try {
       cv.imshow(canvasRef.current, dst);
@@ -177,6 +180,8 @@ export default function Home() {
   }
 
   const handleWinter = () => {
+    if (!canvasRef.current || !currentMat) return;
+
     let dst = filter.Winter(currentMat);
     try {
       cv.imshow(canvasRef.current, dst);
@@ -187,7 +192,22 @@ export default function Home() {
   }
 
   const handleSummmer = () => {
+    if (!canvasRef.current || !currentMat) return;
+
     let dst = filter.Summer(currentMat);
+    try {
+      cv.imshow(canvasRef.current, dst);
+      setCurrentMat(dst);
+    } catch (error) {
+      console.error("Failed to display image on canvas:", error);
+    }
+  }
+
+  const handleTempature = (tempatureValue) => {
+    if (!canvasRef.current || !currentMat) return;
+
+    let dst = filter.adjustColorTemperature(currentMat, tempatureValue - tempature);
+    setTempature(tempatureValue);
     try {
       cv.imshow(canvasRef.current, dst);
       setCurrentMat(dst);
@@ -327,12 +347,12 @@ export default function Home() {
       onValueChange: handleColorSaturation,
     },
     {
-      min: 0.8,
-      max: 1.2,
-      step: 0.01,
+      min: -20,
+      max: 20,
+      step: 0.5,
       title: "色溫",
-      initialData: 1,
-      onValueChange: handleColorSaturation,
+      initialData: 0,
+      onValueChange: handleTempature,
     },
   ];
 

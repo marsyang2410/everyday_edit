@@ -131,7 +131,46 @@ const filter = {
         channels.delete();
     
         return sum;
+    },
+    
+    adjustColorTemperature: function (img, adjustment) {
+        // Split the channels
+        let channels = new cv.MatVector();
+        cv.split(img, channels);
+        let blue_channel = channels.get(0);
+        let green_channel = channels.get(1);
+        let red_channel = channels.get(2);
+    
+        // Create lookup tables
+        let increaseLookupTable = this.createLookupTable([0, 64, 128, 256], [0, 64 + adjustment, 128 + adjustment, 256]);
+        let decreaseLookupTable = this.createLookupTable([0, 64, 128, 256], [0, 64 - adjustment, 128 - adjustment, 256]);
+    
+        // Apply LUTs
+        let blue_channel_adjusted = new cv.Mat();
+        let red_channel_adjusted = new cv.Mat();
+        cv.LUT(blue_channel, cv.matFromArray(256, 1, cv.CV_8U, increaseLookupTable), blue_channel_adjusted);
+        cv.LUT(red_channel, cv.matFromArray(256, 1, cv.CV_8U, decreaseLookupTable), red_channel_adjusted);
+    
+        // Merge the channels back
+        let adjustedImage = new cv.Mat();
+        let mergedChannels = new cv.MatVector();
+        mergedChannels.push_back(blue_channel_adjusted);
+        mergedChannels.push_back(green_channel);
+        mergedChannels.push_back(red_channel_adjusted);
+        cv.merge(mergedChannels, adjustedImage);
+    
+        // Clean up
+        blue_channel.delete();
+        green_channel.delete();
+        red_channel.delete();
+        blue_channel_adjusted.delete();
+        red_channel_adjusted.delete();
+        channels.delete();
+        mergedChannels.delete();
+    
+        return adjustedImage;
     }
+    
 };
 
 export default filter;
