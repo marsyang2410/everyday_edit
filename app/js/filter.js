@@ -120,7 +120,7 @@ const filter = {
         channels.set(1, green_channel);
         channels.set(2, blue_channel_enhanced);
 
-        cv.merge(channels, win);
+        cv.merge(channels, sum);
     
         // Clean up
         blue_channel.delete();
@@ -132,7 +132,7 @@ const filter = {
     
         return sum;
     },
-    
+
     adjustColorTemperature: function (img, adjustment) {
         // Split the channels
         let channels = new cv.MatVector();

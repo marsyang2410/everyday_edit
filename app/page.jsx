@@ -475,7 +475,7 @@ export default function Home() {
               <Collapse text="濾鏡">
               <div className="overflow-auto flex-grow spacing-container">
                 {filters.map((filter, index) => (
-                  <CardButton onClick={filter.onClick}>
+                  <CardButton onClick={filter.onClick} key={index}>
                     <Card 
                       imageSrc={filter.imageSrc}
                       title={filter.title}
