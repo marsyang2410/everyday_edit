@@ -1,0 +1,4 @@
+
+.spacing-container > * + * {
+    margin-top: 20px; /* Vertical spacing between children */
+  }
