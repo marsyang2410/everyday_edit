@@ -142,16 +142,23 @@ export default function Home() {
     });
     let width = canvas.width;
     let height = canvas.height;
-    let binWidth = Math.round(width / histSize[0]); // Width of each bin
+    let binWidth = width / 256; // Width of each bin
 
     ctx.fillStyle = "white"; // Set background color
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "lightgray";
 
-    for (let i = 0; i < histSize[0]; i++) {
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 1; 
+    ctx.beginPath();
+    for (let i = 0; i < 256; i++) {
       let binVal = (hist.data32F[i] * height) / max;
-      ctx.fillRect(i * binWidth, height - binVal, binWidth, binVal);
+      if (i === 0) {
+        ctx.moveTo(i * binWidth + binWidth / 2, height - binVal);
+      } else {
+        ctx.lineTo(i * binWidth + binWidth / 2, height - binVal);
+      }
     }
+    ctx.stroke();
 
     srcMat.delete();
     hist.delete();
@@ -169,11 +176,31 @@ export default function Home() {
     }
   }
 
+  const handleWinter = () => {
+    let dst = filter.Winter(currentMat);
+    try {
+      cv.imshow(canvasRef.current, dst);
+      setCurrentMat(dst);
+    } catch (error) {
+      console.error("Failed to display image on canvas:", error);
+    }
+  }
+
+  const handleSummmer = () => {
+    let dst = filter.Summer(currentMat);
+    try {
+      cv.imshow(canvasRef.current, dst);
+      setCurrentMat(dst);
+    } catch (error) {
+      console.error("Failed to display image on canvas:", error);
+    }
+  }
+
   const handleBrightness = (newBrightness) => {
     if (!canvasRef.current || !currentMat) return;
 
     let dstMat = new cv.Mat();
-    currentMat.convertTo(dstMat, -1, 1, newBrightness - brightness);
+    currentMat.convert(dstMat, -1, 1, newBrightness - brightness);
     if (dstMat.empty()) {
       console.error("Destination matrix is empty.");
       return;
@@ -266,6 +293,29 @@ export default function Home() {
 
     setShadow(shadowValue);
   };
+
+  const filters = [
+    {
+      onClick: handleAESHE,
+      title: "Balanced Contrast Booster",
+      description: "Enhances image contrast adaptively while preserving color integrity and details",
+      imageSrc: "/img/sample.png"
+    },
+    {
+      onClick: handleWinter,
+      title: "Winter",
+      description: "Cool, blueish tint to images, enhancing the cold and crisp feel of winter scenes.",
+      imageSrc: "/img/winter.webp"
+
+    },
+    {
+      onClick: handleSummmer,
+      title: "Summer",
+      description: "Warm, golden hue to images, intensifying the brightness and vibrancy typical of sunny summer days",
+      imageSrc: "/img/summer.webp"
+
+    },
+  ];
 
   const sliderColor = [
     {
@@ -403,27 +453,17 @@ export default function Home() {
             </div>
             <div className="flex flex-col ">
               <Collapse text="濾鏡">
-              <CardButton onClick={handleAESHE}>
-                <Card 
-                  imageSrc="/img/sample.png"
-                  title="Balanced Contrast Booster"
-                  description="Enhances image contrast adaptively while preserving color integrity and details"
-                />
-              </CardButton>
-              <CardButton>
-                <Card 
-                  imageSrc="https://via.placeholder.com/150"
-                  title="Card Title 2"
-                  description="This is a description of the card 2."
-                />
-              </CardButton>
-              <CardButton>
-                <Card 
-                  imageSrc="https://via.placeholder.com/150"
-                  title="Card Title 3"
-                  description="This is a description of the card 3."
-                />
-              </CardButton>
+              <div className="overflow-auto flex-grow spacing-container">
+                {filters.map((filter, index) => (
+                  <CardButton onClick={filter.onClick}>
+                    <Card 
+                      imageSrc={filter.imageSrc}
+                      title={filter.title}
+                      description={filter.description}
+                    />
+                  </CardButton>
+                ))}
+              </div>
               </Collapse>
               <Collapse text="顏色">
                 <div className="overflow-auto flex-grow spacing-container">
