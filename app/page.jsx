@@ -1,6 +1,6 @@
 "use client";
 
-import SlideBar from "./components/SlideBar.jsx";
+import SlideBar from "./components/SliderBar.jsx";
 import ImageUploader from "./components/ImageUpload.jsx";
 import Header from "./components/Header.jsx";
 import IconButton from "./components/IconButton.jsx";
@@ -33,7 +33,7 @@ export default function Home() {
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "lightgray"; // Set background color
+    ctx.fillStyle = "white"; // Set background color
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "black"; // Set text color
@@ -144,9 +144,9 @@ export default function Home() {
     let height = canvas.height;
     let binWidth = Math.round(width / histSize[0]); // Width of each bin
 
-    ctx.fillStyle = "lightgray"; // Set background color
+    ctx.fillStyle = "white"; // Set background color
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "white";
+    ctx.fillStyle = "lightgray";
 
     for (let i = 0; i < histSize[0]; i++) {
       let binVal = (hist.data32F[i] * height) / max;
@@ -316,9 +316,9 @@ export default function Home() {
   return (
     <div className="overflow-hidden">
       <Header />
-      <main className="flex flex-col items-center justify-start p-10 min-h-screen w-full">
-        <div className="flex flex-row w-full bg-red-100">
-          <div className="w-1/2 p-4 bg-green-50 overflow-hidden	">
+      <main className="flex flex-col items-center justify-start bg-white min-h-screen w-full">
+        <div className="flex flex-row w-full border-b border-black">
+          <div className="w-1/2 p-4 overflow-hidden mt-4">
             {histogramReady && (
               <ImageUploader
                 imageSrc={src}
@@ -331,11 +331,11 @@ export default function Home() {
               </ImageUploader>
             )}
             {src && (
-              <div className="flex justify-center bg-black">
+              <div className="flex justify-center bg-stone-200">
                 <canvas ref={canvasRef} style={{ maxWidth: "320px", height: "400px" }} />
               </div>
             )}
-            <div className="flex justify-center space-x-8">
+            <div className="flex justify-center space-x-20 mt-10">
               <IconButton onClick={refresh}>
                 <svg
                   className="w-[48px] h-[48px] text-gray-800 dark:text-white"
@@ -398,6 +398,9 @@ export default function Home() {
             </div>
           </div>
           <div className="flex-1 p-4 overflow-hidden">
+            <div className="mt-4 mb-4 border-2">
+              <canvas ref={histCanvas} className="w-full"></canvas>
+            </div>
             <div className="flex flex-col ">
               <Collapse text="濾鏡">
               <CardButton onClick={handleAESHE}>
@@ -453,12 +456,9 @@ export default function Home() {
                 </div>
               </Collapse>
             </div>
-            <div className="mt-4">
-              <canvas ref={histCanvas} className="w-full"></canvas>
-            </div>
           </div>
         </div>
-        <div className="w-full p-4 bg-black">
+        <div className="w-full p-4">
           <div className="flex space-x-4">
             {imageList.map((image, index) => (
               <button

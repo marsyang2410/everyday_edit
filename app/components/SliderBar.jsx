@@ -1,5 +1,6 @@
 import React from 'react'
 import { useState , useEffect } from 'react';
+import "./SliderBar.css"
 
 export default function SlideBar({min = 0,max = 100,step = 10,initialData = 50,title = "unknown",onValueChange = () => {} }) {
   const [value, setValue] = useState(initialData); // Default value
@@ -25,7 +26,15 @@ export default function SlideBar({min = 0,max = 100,step = 10,initialData = 50,t
         value={value}
         step={step}
         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
-    />
+        style={{
+          WebkitAppearance: 'none',
+          appearance: 'none',
+          outline: 'none',
+          height: '8px',
+          background: "#c8c8c8",
+          borderRadius: '5px',
+        }}
+      />
     </div>
 
   )
