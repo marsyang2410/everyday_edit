@@ -220,7 +220,7 @@ export default function Home() {
     if (!canvasRef.current || !currentMat) return;
 
     let dstMat = new cv.Mat();
-    currentMat.convert(dstMat, -1, 1, newBrightness - brightness);
+    currentMat.convertTo(dstMat, -1, 1, newBrightness - brightness);
     if (dstMat.empty()) {
       console.error("Destination matrix is empty.");
       return;
