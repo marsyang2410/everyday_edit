@@ -24,6 +24,7 @@ export default function Home() {
   const [contrast, setContrast] = useState(127);
   const [saturation, setSaturation] = useState(1);
   const [shadow, setShadow] = useState(1);
+  const [light, setLight] = useState(1);
   const [tempature, setTempature] = useState(1);
   const [imageList, setImageList] = useState([]);
   const [imageIdx, setImageIdx] = useState(0);
@@ -220,7 +221,7 @@ export default function Home() {
     if (!canvasRef.current || !currentMat) return;
 
     let dstMat = new cv.Mat();
-    currentMat.convert(dstMat, -1, 1, newBrightness - brightness);
+    currentMat.convertTo(dstMat, -1, 1, newBrightness - brightness);
     if (dstMat.empty()) {
       console.error("Destination matrix is empty.");
       return;
@@ -314,6 +315,33 @@ export default function Home() {
     setShadow(shadowValue);
   };
 
+  const handleLight = (lightValue) => {
+    if (!canvasRef.current || !currentMat) return;
+  
+    let grayscaleMat = new cv.Mat();
+    cv.cvtColor(currentMat, grayscaleMat, cv.COLOR_RGBA2GRAY, 4);
+  
+    let thresholdMat = new cv.Mat();
+    cv.adaptiveThreshold(grayscaleMat, thresholdMat, 200, cv.ADAPTIVE_THRESH_MEAN_C, cv.THRESH_BINARY, 999, 2);
+  
+    let dstMat = new cv.Mat();
+    cv.cvtColor(thresholdMat, dstMat, cv.COLOR_GRAY2RGBA, 4);
+  
+    try {
+      cv.addWeighted(currentMat, 1.0, dstMat, lightValue - 1, 0, dstMat);
+      cv.imshow(canvasRef.current, dstMat);
+      setCurrentMat(dstMat);
+    } catch (error) {
+      console.error("Failed to display image on canvas:", error);
+    } finally {
+      grayscaleMat.delete();
+      thresholdMat.delete();
+    }
+  
+    setLight(lightValue);
+  };
+  
+
   const filters = [
     {
       onClick: handleAESHE,
@@ -344,6 +372,7 @@ export default function Home() {
       step: 0.01,
       title: "鮮豔度",
       initialData: 1,
+      backgroundType: 'blueToYellow',
       onValueChange: handleColorSaturation,
     },
     {
@@ -352,6 +381,7 @@ export default function Home() {
       step: 0.5,
       title: "色溫",
       initialData: 0,
+      backgroundType: 'greenToPurple',
       onValueChange: handleTempature,
     },
   ];
@@ -380,6 +410,14 @@ export default function Home() {
       title: "陰影",
       initialData: 1,
       onValueChange: handleShadow,
+    },
+    {
+      min: 0.8,
+      max: 1.2,
+      step: 0.01,
+      title: "亮部",
+      initialData: 1,
+      onValueChange: handleLight,
     },
   ];
 
@@ -475,7 +513,7 @@ export default function Home() {
               <Collapse text="濾鏡">
               <div className="overflow-auto flex-grow spacing-container">
                 {filters.map((filter, index) => (
-                  <CardButton onClick={filter.onClick}>
+                  <CardButton onClick={filter.onClick} key={index}>
                     <Card 
                       imageSrc={filter.imageSrc}
                       title={filter.title}
@@ -496,6 +534,7 @@ export default function Home() {
                       initialData={slider.initialData}
                       title={slider.title}
                       onValueChange={slider.onValueChange}
+                      backgroundType={slider.backgroundType}
                     />
                   ))}
                 </div>
