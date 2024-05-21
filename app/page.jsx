@@ -92,6 +92,22 @@ export default function Home() {
     }
   };
 
+  const downloadImage = () => {
+    if (!src) return; // If there's no current image, exit the function
+  
+    // Convert the canvas image to a data URL
+    const canvas = canvasRef.current;
+    const dataURL = canvas.toDataURL();
+  
+    // Create a temporary anchor element
+    const link = document.createElement('a');
+    link.download = 'image-everyday'; // Set the default download filename
+    link.href = dataURL; // Set the href attribute to the data URL
+  
+    // Simulate a click on the anchor element to trigger the download
+    link.click();
+  };
+
   useEffect(() => {
     if (currentMat && !currentMat.empty()) {
       console.log("matrix change");
@@ -446,7 +462,7 @@ export default function Home() {
                 </svg>
               </IconButton>
 
-              <IconButton>
+              <IconButton onClick={downloadImage}>
                 <svg
                   className="w-[48px] h-[48px] text-gray-800 dark:text-white"
                   aria-hidden="true"
