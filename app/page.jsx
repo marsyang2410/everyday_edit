@@ -302,7 +302,7 @@ export default function Home() {
     cv.cvtColor(thresholdMat, dstMat, cv.COLOR_GRAY2RGBA, 4);
 
     try {
-      cv.addWeighted(currentMat, 1.0, dstMat, shadowValue - 1, 0, dstMat);
+      cv.addWeighted(currentMat, 1.0, dstMat, shadowValue, 0, dstMat);
       cv.imshow(canvasRef.current, dstMat);
       setCurrentMat(dstMat);
     } catch (error) {
@@ -328,7 +328,7 @@ export default function Home() {
     cv.cvtColor(thresholdMat, dstMat, cv.COLOR_GRAY2RGBA, 4);
   
     try {
-      cv.addWeighted(currentMat, 1.0, dstMat, lightValue - 1, 0, dstMat);
+      cv.addWeighted(currentMat, 1.0, dstMat, lightValue, 0, dstMat);
       cv.imshow(canvasRef.current, dstMat);
       setCurrentMat(dstMat);
     } catch (error) {
@@ -372,7 +372,7 @@ export default function Home() {
       step: 0.01,
       title: "鮮豔度",
       initialData: 1,
-      backgroundType: 'blueToYellow',
+      backgroundType: 'greenToPurple',
       onValueChange: handleColorSaturation,
     },
     {
@@ -381,7 +381,7 @@ export default function Home() {
       step: 0.5,
       title: "色溫",
       initialData: 0,
-      backgroundType: 'greenToPurple',
+      backgroundType: 'blueToYellow',
       onValueChange: handleTempature,
     },
   ];
@@ -404,19 +404,19 @@ export default function Home() {
       onValueChange: handleContrast,
     },
     {
-      min: 0.8,
-      max: 1.2,
+      min: -0.5,
+      max: 0.5,
       step: 0.01,
       title: "陰影",
-      initialData: 1,
+      initialData: 0,
       onValueChange: handleShadow,
     },
     {
-      min: 0.8,
-      max: 1.2,
+      min: -0.5,
+      max: 0.5,
       step: 0.01,
       title: "亮部",
-      initialData: 1,
+      initialData: 0,
       onValueChange: handleLight,
     },
   ];
