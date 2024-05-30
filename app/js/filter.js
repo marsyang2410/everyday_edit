@@ -2,6 +2,123 @@ import * as cv from "@techstark/opencv-js";
 
 const filter = {
     /**
+     * Applies Automatic Equal-Separated Histogram Equalization (AESHE) to enhance the contrast of an image.
+     * @param {cv.Mat} src - The source image.
+     * @returns {cv.Mat}
+     */
+    AESHE: function(src) {
+        // Convert the image to the HSV color space
+        let hsv = new cv.Mat();
+        cv.cvtColor(src, hsv, cv.COLOR_RGB2HSV);
+
+        // Split the HSV image into its three channels
+        let channels = new cv.MatVector();
+        cv.split(hsv, channels);
+        let vChannel = channels.get(2); // Value channel
+
+        // Calculate the histogram and cumulative distribution function (CDF) for the V channel
+        let srcVec = new cv.MatVector();
+        srcVec.push_back(vChannel);
+        let hist = new cv.Mat();
+        let mask = new cv.Mat();
+        let histSize = [256];
+        let ranges = [0, 256];
+        cv.calcHist(srcVec, [0], mask, hist, histSize, ranges, false);
+
+        console.log(hist);
+
+        // Calculate the PDF and CDF
+        let cdf = new Array(256).fill(0);
+        let totalPixels = 0;
+        for (let i = 0; i < 256; i++) {
+            totalPixels += hist.data32F[i];
+        }
+        for (let i = 0; i < 256; i++) {
+            cdf[i] = (i === 0 ? hist.data32F[i] : cdf[i - 1] + hist.data32F[i]);
+        }
+        for (let i = 0; i < 256; i++) {
+            cdf[i] = cdf[i] / totalPixels;
+        }
+        // Helper function for binary search
+        function findThresholdIndex(arr, value) {
+            let low = 0;
+            let high = arr.length - 1;
+            while (low <= high) {
+                let mid = Math.floor((low + high) / 2);
+                if (arr[mid] < value) {
+                    low = mid + 1;
+                } else if (arr[mid] > value) {
+                    high = mid - 1;
+                } else {
+                    return mid;
+                }
+            }
+            return low;
+        }
+
+        // Automatic equal-separated histogram equalization
+        let t = 2;
+        let previousMeanT = -1;
+        let equalSeparatedThresholds = [];
+        let iterations = 0;
+        while (iterations < 100) {
+            equalSeparatedThresholds = Array.from({ length: t + 1 }, (_, i) => findThresholdIndex(cdf, i / t));
+            let meanT = equalSeparatedThresholds.reduce((a, b) => a + b) / equalSeparatedThresholds.length;
+
+            if (meanT === previousMeanT) {
+                break;
+            }
+
+            previousMeanT = meanT;
+            t += 1;
+            iterations += 1;
+        }
+        console.log(equalSeparatedThresholds);
+        // Piecewise transformation function
+        let lut = new Uint8Array(256);
+        for (let i = 0; i < t; i++) {
+            let start = equalSeparatedThresholds[i];
+            let end = equalSeparatedThresholds[i + 1];
+            let cdfStart = cdf[start];
+            let cdfEnd = cdf[end];
+            let range = end - start;
+            let cdfRange = cdfEnd - cdfStart;
+
+            for (let j = start; j <= end; j++) {
+                lut[j] = Math.round(((j - start) / range) * cdfRange * 255 + cdfStart * 255);
+            }
+        }
+        console.log(lut);
+        lut[255] = 255;
+        // Apply the LUT to the V channel
+        let equalizedVChannel = new cv.Mat();
+        cv.LUT(vChannel, cv.matFromArray(256, 1, cv.CV_8U, lut), equalizedVChannel);
+
+        // Replace the original V channel with the enhanced V channel
+        channels.set(2, equalizedVChannel);
+
+        // Merge the channels back together
+        let enhancedHSV = new cv.Mat();
+        cv.merge(channels, enhancedHSV);
+
+        // Convert the enhanced HSV image back to the RGB color space
+        let dst = new cv.Mat();
+        cv.cvtColor(enhancedHSV, dst, cv.COLOR_HSV2RGB);
+
+        // Clean up
+        hsv.delete();
+        vChannel.delete();
+        enhancedHSV.delete();
+        channels.delete();
+        equalizedVChannel.delete();
+        srcVec.delete();
+        hist.delete();
+        mask.delete();
+
+        return dst;
+    },
+
+    /**
      * Applies CLAHE (Contrast Limited Adaptive Histogram Equalization) to enhance the contrast of an image in the YUV color space.
      * @param {cv.Mat} src - The source image.
      * @returns {cv.Mat}

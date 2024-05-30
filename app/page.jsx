@@ -171,6 +171,18 @@ export default function Home() {
   const handleAESHE = () => {
     if (!canvasRef.current || !currentMat) return;
 
+    let dst = filter.AESHE(currentMat);
+    try {
+      cv.imshow(canvasRef.current, dst);
+      setCurrentMat(dst);
+    } catch (error) {
+      console.error("Failed to display image on canvas:", error);
+    }
+  }
+
+  const handleCLAHE = () => {
+    if (!canvasRef.current || !currentMat) return;
+
     let dst = filter.CLAHE(currentMat);
     try {
       cv.imshow(canvasRef.current, dst);
@@ -345,7 +357,13 @@ export default function Home() {
   const filters = [
     {
       onClick: handleAESHE,
-      title: "Balanced Contrast Booster",
+      title: "Balanced Contrast Booster (AESHE)",
+      description: "Enhances image contrast adaptively while preserving color integrity and details",
+      imageSrc: "/img/sample.png"
+    },
+    {
+      onClick: handleCLAHE,
+      title: "Balanced Contrast Booster (CLAHE)",
       description: "Enhances image contrast adaptively while preserving color integrity and details",
       imageSrc: "/img/sample.png"
     },

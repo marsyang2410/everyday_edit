@@ -22,7 +22,7 @@ export default function SlideBar({
   };
 
   const getBackgroundClass = () => {
-    console.log(backgroundType)
+    // console.log(backgroundType)
     switch(backgroundType) {
       case 'blueToYellow':
         return 'bg-blue-to-yellow';
