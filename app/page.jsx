@@ -215,6 +215,19 @@ export default function Home() {
       console.error("Failed to display image on canvas:", error);
     }
   }
+
+  const handleColorMix = () => {
+    if (!canvasRef.current || !currentMat) return;
+    let tmp = cv.imread("img")
+    console.log(currentMat)
+    let dst = filter.processImages(currentMat, tmp);
+    try {
+      cv.imshow(canvasRef.current, dst);
+      setCurrentMat(dst);
+    } catch (error) {
+      console.error("Failed to display image on canvas:", error);
+    }
+  }
   // tempature commit 1
   const handleTempature = (tempatureValue) => {
     if (!canvasRef.current || !currentMat) return;
@@ -381,6 +394,13 @@ export default function Home() {
       imageSrc: "/img/summer.webp"
 
     },
+    {
+      onClick: handleColorMix,
+      title: "ColorMix",
+      description: "Mix the art art with the uploaded photo",
+      imageSrc: "/img/target_image.jpg",
+      id: "img"
+    },
   ];
 
   const sliderColor = [
@@ -536,6 +556,7 @@ export default function Home() {
                       imageSrc={filter.imageSrc}
                       title={filter.title}
                       description={filter.description}
+                      id={filter.id? filter.id : undefined}
                     />
                   </CardButton>
                 ))}
