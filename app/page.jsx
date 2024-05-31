@@ -397,7 +397,7 @@ export default function Home() {
     {
       onClick: handleColorMix,
       title: "ColorMix",
-      description: "Warm, golden hue to images, intensifying the brightness and vibrancy typical of sunny summer days",
+      description: "Mix the art art with the uploaded photo",
       imageSrc: "/img/target_image.jpg",
       id: "img"
     },
