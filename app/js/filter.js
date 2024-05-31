@@ -61,17 +61,16 @@ const filter = {
         let previousMeanT = -1;
         let equalSeparatedThresholds = [];
         let iterations = 0;
-        while (iterations < 100) {
+        while (true) {
             equalSeparatedThresholds = Array.from({ length: t + 1 }, (_, i) => findThresholdIndex(cdf, i / t));
             let meanT = equalSeparatedThresholds.reduce((a, b) => a + b) / equalSeparatedThresholds.length;
 
-            if (meanT === previousMeanT) {
+            if (Math.abs(meanT -previousMeanT) < 0.0001) {
                 break;
             }
 
             previousMeanT = meanT;
             t += 1;
-            iterations += 1;
         }
         console.log(equalSeparatedThresholds);
         // Piecewise transformation function
@@ -286,6 +285,128 @@ const filter = {
         mergedChannels.delete();
     
         return adjustedImage;
+    },
+
+    readAndConvert(mat) {
+        const labMat = new cv.Mat();
+        cv.cvtColor(mat, labMat, cv.COLOR_RGB2Lab);
+        // console.log(labMat);
+        return labMat;
+    },
+
+    applyMultiThreshold(labMat) {
+        const channels = new cv.MatVector();
+        cv.split(labMat, channels);
+        const lChannel = channels.get(0);
+
+        const thresholdValue = cv.threshold(lChannel, lChannel, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+        const segmentedMat = new cv.Mat();
+        cv.threshold(lChannel, segmentedMat, thresholdValue, 255, cv.THRESH_BINARY);
+
+        channels.delete();
+        lChannel.delete();
+
+        return segmentedMat;
+    },
+
+    calculateMean(array) {
+        const sum = array.reduce((a, b) => a + b, 0);
+        return sum / array.length;
+    },
+    
+    calculateStd(array, mean) {
+        const variance = array.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / array.length;
+        return Math.sqrt(variance);
+    },
+
+    colorTransfer(sourceLab, targetLab, mask) {
+        const matched = new cv.Mat();
+        targetLab.copyTo(matched);
+        const maskResized = new cv.Mat();
+        cv.resize(mask, maskResized, new cv.Size(targetLab.cols, targetLab.rows), 0, 0, cv.INTER_LINEAR);
+
+        const channelsSource = new cv.MatVector();
+        const channelsTarget = new cv.MatVector();
+        const channelsMatched = new cv.MatVector();
+
+        cv.split(sourceLab, channelsSource);
+        cv.split(targetLab, channelsTarget);
+        cv.split(matched, channelsMatched);
+
+        const uniqueRegions = Array.from(new Set(maskResized.data));
+        // console.log(uniqueRegions)
+        uniqueRegions.forEach(region => {
+            if (region === 0) return;
+            const regionMask = new cv.Mat();
+            const lowerb = cv.matFromArray(1, 1, cv.CV_8U, [parseInt(region)]);
+            const upperb = cv.matFromArray(1, 1, cv.CV_8U, [parseInt(region)]);
+
+            cv.inRange(maskResized, lowerb, upperb, regionMask);
+            // console.log(regionMask.data);
+            for (let channel = 0; channel < 3; channel++) {
+                const sourceRegion = new cv.Mat();
+                const targetRegion = new cv.Mat();
+                channelsSource.get(channel).copyTo(sourceRegion, regionMask);
+                channelsTarget.get(channel).copyTo(targetRegion, regionMask);
+
+                const sourceData = new Float32Array(sourceRegion.data);
+                const targetData = new Float32Array(targetRegion.data);
+    
+                const srcMean = this.calculateMean(sourceData);
+                const srcStd = this.calculateStd(sourceData, srcMean);
+                console.log("src:", srcMean, srcStd);
+                const tarMean = this.calculateMean(targetData);
+                const tarStd = this.calculateStd(targetData, tarMean);
+    
+                const sourceNormalized = sourceData.map(value => (value - srcMean) / (srcStd + 1e-10));
+                const sourceScaled = sourceNormalized.map(value => value * tarStd + tarMean);
+    
+                const sourceScaledUint8 = new Uint8Array(sourceScaled.map(value => Math.min(Math.max(value, 0), 255)));
+                const sourceScaledMat = cv.matFromArray(sourceRegion.rows, sourceRegion.cols, sourceRegion.type(), sourceScaledUint8);
+    
+                sourceScaledMat.copyTo(channelsMatched.get(channel), regionMask);
+    
+                sourceRegion.delete();
+                targetRegion.delete();
+                sourceScaledMat.delete();
+            }
+
+            regionMask.delete();
+            lowerb.delete();
+            upperb.delete();
+        });
+
+        cv.merge(channelsMatched, matched);
+
+        maskResized.delete();
+        channelsSource.delete();
+        channelsTarget.delete();
+        channelsMatched.delete();
+
+        return matched;
+    },
+
+    processImages(contentMat, targetMat) {
+        // console.log(contentMat);
+        const contentLab = this.readAndConvert(contentMat);
+        const targetLab = this.readAndConvert(targetMat);
+        const contentSegments = this.applyMultiThreshold(contentLab);
+
+        const resizedTargetLab = new cv.Mat();
+        cv.resize(targetLab, resizedTargetLab, new cv.Size(contentLab.cols, contentLab.rows), 0, 0, cv.INTER_LINEAR);
+        // console.log(contentLab);
+        const transferred = this.colorTransfer(contentLab, resizedTargetLab, contentSegments);
+        const transferredRgb = new cv.Mat();
+        cv.cvtColor(transferred, transferredRgb, cv.COLOR_Lab2RGB);
+
+        // Clean up intermediate matrices
+        contentLab.delete();
+        targetLab.delete();
+        contentSegments.delete();
+        resizedTargetLab.delete();
+        transferred.delete();
+
+        return transferredRgb;
     }
     
 };
