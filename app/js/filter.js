@@ -25,7 +25,7 @@ const filter = {
         let ranges = [0, 256];
         cv.calcHist(srcVec, [0], mask, hist, histSize, ranges, false);
 
-        console.log(hist);
+        // console.log(hist);
 
         // Calculate the PDF and CDF
         let cdf = new Array(256).fill(0);
@@ -72,7 +72,7 @@ const filter = {
             previousMeanT = meanT;
             t += 1;
         }
-        console.log(equalSeparatedThresholds);
+        // console.log(equalSeparatedThresholds);
         // Piecewise transformation function
         let lut = new Uint8Array(256);
         for (let i = 0; i < t; i++) {
@@ -87,7 +87,7 @@ const filter = {
                 lut[j] = Math.round(((j - start) / range) * cdfRange * 255 + cdfStart * 255);
             }
         }
-        console.log(lut);
+        // console.log(lut);
         lut[255] = 255;
         // Apply the LUT to the V channel
         let equalizedVChannel = new cv.Mat();
@@ -290,7 +290,7 @@ const filter = {
     readAndConvert(mat) {
         const labMat = new cv.Mat();
         cv.cvtColor(mat, labMat, cv.COLOR_RGB2Lab);
-        // console.log(labMat);
+        console.log(labMat);
         return labMat;
     },
 
@@ -300,6 +300,7 @@ const filter = {
         const lChannel = channels.get(0);
 
         const thresholdValue = cv.threshold(lChannel, lChannel, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+        // console.log("thresholdvalue :", thresholdValue);
         const segmentedMat = new cv.Mat();
         cv.threshold(lChannel, segmentedMat, thresholdValue, 255, cv.THRESH_BINARY);
 
@@ -336,12 +337,14 @@ const filter = {
         const uniqueRegions = Array.from(new Set(maskResized.data));
         // console.log(uniqueRegions)
         uniqueRegions.forEach(region => {
-            if (region === 0) return;
+            // if (region != 0) return;
+            // console
             const regionMask = new cv.Mat();
             const lowerb = cv.matFromArray(1, 1, cv.CV_8U, [parseInt(region)]);
             const upperb = cv.matFromArray(1, 1, cv.CV_8U, [parseInt(region)]);
 
             cv.inRange(maskResized, lowerb, upperb, regionMask);
+            cv.threshold(regionMask, regionMask, 0, 1, cv.THRESH_BINARY);
             // console.log(regionMask.data);
             for (let channel = 0; channel < 3; channel++) {
                 const sourceRegion = new cv.Mat();
@@ -354,7 +357,7 @@ const filter = {
     
                 const srcMean = this.calculateMean(sourceData);
                 const srcStd = this.calculateStd(sourceData, srcMean);
-                console.log("src:", srcMean, srcStd);
+                // console.log("src:", srcMean, srcStd);
                 const tarMean = this.calculateMean(targetData);
                 const tarStd = this.calculateStd(targetData, tarMean);
     
@@ -387,14 +390,14 @@ const filter = {
     },
 
     processImages(contentMat, targetMat) {
-        // console.log(contentMat);
+        console.log(contentMat);
         const contentLab = this.readAndConvert(contentMat);
         const targetLab = this.readAndConvert(targetMat);
         const contentSegments = this.applyMultiThreshold(contentLab);
 
         const resizedTargetLab = new cv.Mat();
         cv.resize(targetLab, resizedTargetLab, new cv.Size(contentLab.cols, contentLab.rows), 0, 0, cv.INTER_LINEAR);
-        // console.log(contentLab);
+        console.log(contentLab);
         const transferred = this.colorTransfer(contentLab, resizedTargetLab, contentSegments);
         const transferredRgb = new cv.Mat();
         cv.cvtColor(transferred, transferredRgb, cv.COLOR_Lab2RGB);
